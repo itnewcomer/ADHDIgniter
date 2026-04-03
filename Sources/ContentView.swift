@@ -81,7 +81,9 @@ struct MainTabView: View {
 
     private func resetIfNewDay() {
         let key = "lastResetDate"
-        let today = Calendar.current.startOfDay(for: Date()).description
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        let today = fmt.string(from: Date())
         guard UserDefaults.standard.string(forKey: key) != today else { return }
         UserDefaults.standard.set(today, forKey: key)
 
@@ -108,12 +110,12 @@ struct MainTabView: View {
                 task.assignedWeekday = nil
             }
         }
+        try? context.save()
     }
 
     private func isPastWeekday(_ weekday: Int, today: Int) -> Bool {
-        // 今日から7日間のリストに含まれないなら過去
-        let futureWeekdays = (0..<7).map { ((today - 1 + $0) % 7) + 1 }
-        return !futureWeekdays.contains(weekday)
+        // 今週の中で今日より前の曜日かどうか（1=日, 2=月, ..., 7=土）
+        return weekday < today
     }
 
     private func findOverdueTasks() -> [Task] {

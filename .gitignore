@@ -21,3 +21,6 @@ Packages/
 
 # macOS
 .DS_Store
+
+# 開発ログ（内部メモ・公開しない）
+docs/devlog.md

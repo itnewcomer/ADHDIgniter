@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct InsightView: View {
+    @Environment(\.modelContext) private var context
     @Query(sort: \FocusSession.date, order: .reverse) private var sessions: [FocusSession]
     @Query(sort: \CheckIn.timestamp, order: .reverse) private var checkIns: [CheckIn]
     @Query private var profiles: [UserProfile]
@@ -42,7 +43,7 @@ struct InsightView: View {
                     HStack(spacing: 12) {
                         StatCard(title: "今日", value: "\(totalMinutesToday)分", icon: "flame.fill", color: AppColors.fire)
                         StatCard(title: "今週", value: "\(totalMinutesWeek)分", icon: "calendar", color: AppColors.week)
-                        StatCard(title: "完了タスク", value: "\(completedTaskCount)", icon: "checkmark.circle.fill", color: AppColors.success)
+                        StatCard(title: "完了セッション", value: "\(completedTaskCount)", icon: "checkmark.circle.fill", color: AppColors.success)
                     }
                     .padding(.horizontal)
 
@@ -66,7 +67,7 @@ struct InsightView: View {
                                 .font(.headline)
                                 .foregroundColor(AppColors.textPrimary)
 
-                            ForEach(Array(sessions.prefix(10)), id: \.date) { s in
+                            ForEach(Array(sessions.prefix(10)), id: \.persistentModelID) { s in
                                 HStack {
                                     Text(s.completed ? "✅" : "⏸️")
                                     Text(s.taskName)
@@ -113,6 +114,7 @@ struct InsightView: View {
                             ForEach(Array(profile.rewards.enumerated()), id: \.offset) { _, reward in
                                 RewardItem(name: reward.0, cost: reward.1, points: profile.totalPoints) {
                                     profile.totalPoints -= reward.1
+                                    try? context.save()
                                 }
                             }
                         }

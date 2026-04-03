@@ -125,9 +125,6 @@ struct BrainDumpView: View {
     }
 
     private func saveDump() {
-        let dump = BrainDump(rawText: rawText)
-        context.insert(dump)
-
         let lines = rawText.components(separatedBy: "\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -137,6 +134,7 @@ struct BrainDumpView: View {
             context.insert(item)
         }
 
+        try? context.save()
         rawText = ""
     }
 }

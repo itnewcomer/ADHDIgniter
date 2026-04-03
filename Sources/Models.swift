@@ -127,6 +127,13 @@ enum CalendarApp: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Helpers
+
+struct RewardEntry: Codable {
+    let name: String
+    let cost: Int
+}
+
 // MARK: - Models
 
 @Model
@@ -290,7 +297,10 @@ class UserProfile {
     var totalPoints: Int
     var calendarAppRaw: String?
     var morningReminderHour: Int
-    var rewardsRaw: String  // カンマ区切り「名前:コスト」
+    var rewardsRaw: String
+    var streakCount: Int
+    var lastSessionDate: Date?
+    var ritualRaw: String  // 着火前の儀式（空なら未設定）
 
     init() {
         self.enabledTriggersRaw = ""
@@ -299,6 +309,8 @@ class UserProfile {
         self.totalPoints = 0
         self.morningReminderHour = 8
         self.rewardsRaw = "コーヒー1杯 ☕:3,好きなおやつ 🍫:5,1時間の趣味タイム 🎨:10,自分へのプレゼント 🎁:20"
+        self.streakCount = 0
+        self.ritualRaw = ""
     }
 
     var enabledTriggers: [TriggerType] {
@@ -318,14 +330,20 @@ class UserProfile {
 
     var rewards: [(String, Int)] {
         get {
-            rewardsRaw.split(separator: ",").compactMap { entry in
+            // JSON形式を優先、旧「名前:コスト,」形式はフォールバック
+            if let data = rewardsRaw.data(using: .utf8),
+               let entries = try? JSONDecoder().decode([RewardEntry].self, from: data) {
+                return entries.map { ($0.name, $0.cost) }
+            }
+            return rewardsRaw.split(separator: ",").compactMap { entry in
                 let parts = entry.split(separator: ":")
                 guard parts.count == 2, let cost = Int(parts[1]) else { return nil }
                 return (String(parts[0]), cost)
             }
         }
         set {
-            rewardsRaw = newValue.map { "\($0.0):\($0.1)" }.joined(separator: ",")
+            let entries = newValue.map { RewardEntry(name: $0.0, cost: $0.1) }
+            rewardsRaw = (try? String(data: JSONEncoder().encode(entries), encoding: .utf8)) ?? "[]"
         }
     }
 }

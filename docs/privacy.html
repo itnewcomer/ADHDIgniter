@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADHD Igniter - Privacy Policy</title>
+<style>
+body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 0 auto; padding: 20px; line-height: 1.7; color: #333; }
+h1 { border-bottom: 2px solid #333; padding-bottom: 8px; }
+h2 { margin-top: 32px; color: #555; }
+.lang-toggle { text-align: right; margin-bottom: 20px; }
+.lang-toggle a { padding: 6px 16px; border: 1px solid #999; border-radius: 6px; text-decoration: none; color: #333; margin-left: 8px; }
+.lang-toggle a.active { background: #333; color: #fff; }
+.en, .ja { display: none; }
+.show { display: block; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 0.85em; color: #888; }
+</style>
+</head>
+<body>
+<div class="lang-toggle">
+  <a href="#" onclick="showLang('ja')" id="btn-ja" class="active">日本語</a>
+  <a href="#" onclick="showLang('en')" id="btn-en">English</a>
+</div>
+
+<div class="ja show" id="content-ja">
+  <h1>プライバシーポリシー</h1>
+  <p>最終更新日: 2026年4月3日</p>
+
+  <h2>1. はじめに</h2>
+  <p>ADHD Igniter（以下「本アプリ」）は、ユーザーのプライバシーを最優先に考えて設計されています。本アプリは外部サーバーへのデータ送信を一切行わず、すべてのデータをデバイス上にのみ保存します。</p>
+
+  <h2>2. 収集するデータ</h2>
+  <p>本アプリは以下のデータをデバイス上にのみ保存します：</p>
+  <ul>
+    <li>タスクの名前・時間軸・完了状態</li>
+    <li>ブレインダンプの内容</li>
+    <li>集中セッションの記録（開始時刻・経過時間・宣言内容）</li>
+    <li>チェックインの記録（集中状態の自己評価）</li>
+    <li>ユーザー設定（集中トリガー・ご褒美・音楽設定など）</li>
+    <li>ストリーク・ポイントの記録</li>
+  </ul>
+  <p>これらのデータはすべてAppleのSwiftDataフレームワークによりデバイス上に保存されます。</p>
+
+  <h2>3. データの保存場所</h2>
+  <p>すべてのデータはユーザーのデバイス上にのみ保存されます。外部サーバーへの送信、クラウドへのアップロード、第三者への提供は一切行いません。</p>
+
+  <h2>4. 通知</h2>
+  <p>本アプリは朝のリマインダー通知を送信する場合があります。通知の送信にはユーザーの許可が必要です。通知機能はiOSの設定からいつでもオフにできます。通知に個人情報は含まれません。</p>
+
+  <h2>5. 音楽アプリ連携</h2>
+  <p>音楽トリガーを使用する場合、SpotifyまたはApple Musicアプリを起動します。本アプリはこれらのサービスのAPIを使用しておらず、アカウント情報やデータへのアクセスは行いません。</p>
+
+  <h2>6. 第三者サービス</h2>
+  <p>本アプリは広告、アナリティクス、トラッキングツールを一切使用しません。</p>
+
+  <h2>7. ポリシーの変更</h2>
+  <p>本ポリシーは予告なく変更される場合があります。変更があった場合は、本ページを更新します。</p>
+
+  <h2>8. お問い合わせ</h2>
+  <p>プライバシーに関するお問い合わせは、GitHubのIssueページからお願いします。</p>
+</div>
+
+<div class="en" id="content-en">
+  <h1>Privacy Policy</h1>
+  <p>Last updated: April 3, 2026</p>
+
+  <h2>1. Introduction</h2>
+  <p>ADHD Igniter ("the App") is designed with your privacy as the top priority. The App does not transmit any data to external servers — all data is stored exclusively on your device.</p>
+
+  <h2>2. Data We Collect</h2>
+  <p>The App stores the following data only on your device:</p>
+  <ul>
+    <li>Task names, time horizons, and completion status</li>
+    <li>Brain dump entries</li>
+    <li>Focus session records (start time, duration, declarations)</li>
+    <li>Check-in records (self-assessed focus state)</li>
+    <li>User settings (focus triggers, rewards, music preferences, etc.)</li>
+    <li>Streak and point records</li>
+  </ul>
+  <p>All data is stored locally using Apple's SwiftData framework.</p>
+
+  <h2>3. Data Storage</h2>
+  <p>All data is stored exclusively on your device. We do not transmit data to external servers, upload to cloud services, or share with third parties.</p>
+
+  <h2>4. Notifications</h2>
+  <p>The App may send morning reminder notifications. Notification permission is required and can be revoked at any time from iOS Settings. Notifications do not contain personal information.</p>
+
+  <h2>5. Music App Integration</h2>
+  <p>When using the music trigger, the App launches Spotify or Apple Music. The App does not use these services' APIs and does not access your account information or data.</p>
+
+  <h2>6. Third-Party Services</h2>
+  <p>The App does not use any advertising, analytics, or tracking tools.</p>
+
+  <h2>7. Policy Changes</h2>
+  <p>This policy may be updated without prior notice. Changes will be reflected on this page.</p>
+
+  <h2>8. Contact</h2>
+  <p>For privacy-related inquiries, please use the GitHub Issues page.</p>
+</div>
+
+<footer>ADHD Igniter &copy; 2026</footer>
+
+<script>
+function showLang(lang) {
+  document.getElementById('content-ja').className = 'ja' + (lang === 'ja' ? ' show' : '');
+  document.getElementById('content-en').className = 'en' + (lang === 'en' ? ' show' : '');
+  document.getElementById('btn-ja').className = lang === 'ja' ? 'active' : '';
+  document.getElementById('btn-en').className = lang === 'en' ? 'active' : '';
+  return false;
+}
+</script>
+</body>
+</html>

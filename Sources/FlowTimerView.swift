@@ -3,19 +3,24 @@ import SwiftData
 
 struct FlowTimerView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable var session: FocusSession
     let task: Task
     @Query private var profiles: [UserProfile]
 
     @State private var elapsed: Int = 0
     @State private var timer: Timer?
-    @State private var phase: TimerPhase = .initial // 2分チャレンジ
+    @State private var clockTimer: Timer?
+    @State private var currentTime = Date()
+    @State private var phase: TimerPhase = .initial
     @State private var showCheckIn = false
     @State private var nextCheckInAt: Int = 0
-    @State private var checkInInterval: Int = 600 // 初回10分後
+    @State private var checkInInterval: Int = 600
     @State private var showTransition = false
-    @State private var deadlineRemaining: Int = 0  // deadline後半のカウントダウン
+    @State private var deadlineRemaining: Int = 0
     @State private var inDeadlineCountdown = false
+    @State private var backgroundedAt: Date?
+    @State private var deadlineUsed = false
 
     enum TimerPhase {
         case initial    // 最初の2分（全員共通）
@@ -99,6 +104,10 @@ struct FlowTimerView: View {
                                 .font(.caption)
                                 .foregroundColor(AppColors.textSecondary)
                         }
+                        // #7 現在時刻（時間盲対策）
+                        Text(currentTime.formatted(date: .omitted, time: .shortened))
+                            .font(.caption2)
+                            .foregroundColor(AppColors.textSecondary.opacity(0.5))
                     }
                 }
 
@@ -123,10 +132,12 @@ struct FlowTimerView: View {
                             .font(.title2.bold())
                             .foregroundColor(AppColors.fire)
 
-                        if isDeadlineMode {
-                            Button("⏰ 残り\(session.plannedMinutes - 2)分、カウントダウンする") {
+                        // #1 選択肢を2つに絞る（deadlineのみ追加）
+                        if isDeadlineMode && !deadlineUsed {
+                            Button("⏰ 残り\(session.plannedMinutes - 2)分でカウントダウン") {
                                 deadlineRemaining = (session.plannedMinutes - 2) * 60
                                 inDeadlineCountdown = true
+                                deadlineUsed = true
                                 phase = .flowing
                                 nextCheckInAt = elapsed + randomInterval()
                                 startTimer()
@@ -134,21 +145,14 @@ struct FlowTimerView: View {
                             .buttonStyle(FlowButtonStyle(color: AppColors.ember))
                         }
 
-                        Button("もう少し続ける +5分") {
+                        Button("続ける 🔥") {
                             phase = .flowing
                             nextCheckInAt = elapsed + randomInterval()
                             startTimer()
                         }
                         .buttonStyle(FlowButtonStyle(color: AppColors.fire))
 
-                        Button("キリがいいところまで") {
-                            phase = .flowing
-                            nextCheckInAt = elapsed + randomInterval()
-                            startTimer()
-                        }
-                        .buttonStyle(FlowButtonStyle(color: AppColors.timerFlow))
-
-                        Button("もう十分！終わる") {
+                        Button("終わる ✅") {
                             finishSession()
                         }
                         .buttonStyle(FlowButtonStyle(color: AppColors.success))
@@ -160,6 +164,13 @@ struct FlowTimerView: View {
                             Text("⏰ 残り \(deadlineMin):\(String(format: "%02d", deadlineSec))")
                                 .font(.subheadline)
                                 .foregroundColor(deadlineRemaining < 60 ? AppColors.distracted : AppColors.ember)
+                        }
+                        // #5 チェックイン可視化
+                        if !showCheckIn {
+                            let secsUntil = max(0, nextCheckInAt - elapsed)
+                            Text("次のチェックイン: 約\(secsUntil / 60)分後")
+                                .font(.caption)
+                                .foregroundColor(AppColors.textSecondary.opacity(0.6))
                         }
                         Button("✅ 完了する") {
                             finishSession()
@@ -174,8 +185,30 @@ struct FlowTimerView: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AppColors.background)
-            .onAppear { startTimer() }
-            .onDisappear { timer?.invalidate() }
+            .onAppear {
+                startTimer()
+                clockTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+                    currentTime = Date()
+                }
+            }
+            .onDisappear {
+                timer?.invalidate()
+                clockTimer?.invalidate()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background {
+                    if timer != nil { backgroundedAt = Date() }
+                } else if phase == .active {
+                    if let bg = backgroundedAt {
+                        let gap = Int(Date().timeIntervalSince(bg))
+                        elapsed += gap
+                        if inDeadlineCountdown {
+                            deadlineRemaining = max(0, deadlineRemaining - gap)
+                        }
+                        backgroundedAt = nil
+                    }
+                }
+            }
             .overlay {
                 if showCheckIn {
                     CheckInOverlay(
@@ -246,11 +279,45 @@ struct FlowTimerView: View {
     }
 
     private func finishSession() {
+        guard !showTransition else { return }
         timer?.invalidate()
+        timer = nil
         session.actualSeconds = elapsed
         session.endedAt = Date()
         session.completed = true
-        session.bonusEarned = RewardEngine.calculateBonus()
+        let bonus = RewardEngine.calculateBonus()
+        session.bonusEarned = bonus
+
+        // タスクを完了マーク
+        task.isCompleted = true
+        task.completedAt = Date()
+
+        // ポイント加算 + ストリーク更新
+        if let profile = profiles.first {
+            profile.totalPoints += 1 + bonus
+
+            // #2 フレキシブルストリーク（1日スキップ許容）
+            let cal = Calendar.current
+            let today = cal.startOfDay(for: Date())
+            if let last = profile.lastSessionDate {
+                let lastDay = cal.startOfDay(for: last)
+                let daysDiff = cal.dateComponents([.day], from: lastDay, to: today).day ?? 0
+                if daysDiff == 0 {
+                    // 今日すでに完了済み → ストリーク変化なし
+                } else if daysDiff <= 2 {
+                    // 昨日 or 1日スキップ → 継続
+                    profile.streakCount += 1
+                } else {
+                    // 2日以上空いた → リセット
+                    profile.streakCount = 1
+                }
+            } else {
+                profile.streakCount = 1
+            }
+            profile.lastSessionDate = Date()
+        }
+
+        try? context.save()
         phase = .done
         withAnimation { showTransition = true }
     }

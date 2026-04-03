@@ -40,17 +40,44 @@ struct TransitionView: View {
                 }
             }
 
-            // ボーナス
-            if session.bonusEarned > 0 {
-                HStack {
-                    Text("🎰")
-                    Text("ボーナス +\(session.bonusEarned)ポイント！")
-                        .font(.headline)
-                        .foregroundColor(AppColors.ember)
+            // #6 即時ポイント表示
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    VStack {
+                        Text("+\(1 + session.bonusEarned) pt")
+                            .font(.title2.bold())
+                            .foregroundColor(AppColors.fire)
+                        Text("獲得")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    if session.bonusEarned > 0 {
+                        VStack {
+                            Text("🎰 ボーナス！")
+                                .font(.subheadline.bold())
+                                .foregroundColor(AppColors.ember)
+                            Text("+\(session.bonusEarned) pt")
+                                .font(.caption)
+                                .foregroundColor(AppColors.ember)
+                        }
+                    }
                 }
-                .padding(12)
-                .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.ember.opacity(0.15)))
+
+                if let profile = profiles.first, !profile.rewards.isEmpty {
+                    let total = profile.totalPoints
+                    if let next = profile.rewards.filter({ $0.1 > total }).min(by: { $0.1 < $1.1 }) {
+                        Text("次のご褒美まで あと\(next.1 - total) pt → \(next.0)")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                    } else {
+                        Text("🎁 ご褒美と交換できるよ！")
+                            .font(.caption)
+                            .foregroundColor(AppColors.ember)
+                    }
+                }
             }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.fire.opacity(0.1)))
 
             // 深呼吸
             if showBreathing {
@@ -105,11 +132,8 @@ struct TransitionView: View {
     }
 
     private func completeTask() {
-        task.isCompleted = true
-        task.completedAt = Date()
-        if let profile = profiles.first {
-            profile.totalPoints += 1
-        }
+        // finishSession()で完了・ポイント処理済みのため、保存のみ
+        try? context.save()
     }
 
     private func startBreathing() {

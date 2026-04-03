@@ -184,6 +184,7 @@ struct SetupView: View {
                         profile.preferredMusicSourceRaw = musicSource?.rawValue
                         profile.setupCompleted = true
                         context.insert(profile)
+                        try? context.save()
                         ADHDIgniterApp.scheduleMorningReminder(hour: 8)
                         onComplete?()
                     } label: {

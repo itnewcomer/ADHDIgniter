@@ -102,6 +102,19 @@ struct SettingsView: View {
                 }
 
                 // データ
+                Section("着火儀式") {
+                    TextField("着火前にやること（例: コーヒーを入れる）", text: Binding(
+                        get: { profile?.ritualRaw ?? "" },
+                        set: { profile?.ritualRaw = $0 }
+                    ))
+                    .foregroundColor(AppColors.textPrimary)
+                    .listRowBackground(AppColors.cardBackground)
+                    Text("毎回の集中セッション開始前に表示されます")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                        .listRowBackground(AppColors.cardBackground)
+                }
+
                 Section("朝のリマインダー") {
                     Picker("通知時間", selection: Binding(
                         get: { profile?.morningReminderHour ?? 8 },

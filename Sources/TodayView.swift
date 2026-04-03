@@ -11,9 +11,9 @@ struct TodayView: View {
     @State private var selectedTask: Task?
     @State private var editingTask: Task?
     @State private var editName = ""
-    @State private var exerciseDone = false
     @State private var exerciseTimer: Int = 0
     @State private var exerciseTimerRunning = false
+    @State private var exerciseTimerObj: Timer?
 
     private var hasSingleTaskTrigger: Bool {
         profiles.first?.enabledTriggers.contains(.singleTask) == true
@@ -40,8 +40,6 @@ struct TodayView: View {
             .reduce(0) { $0 + Int($1.actualMinutes) }
     }
 
-    var allDone: Bool { !todayTasks.isEmpty || (!completedToday.isEmpty && todayTasks.isEmpty) }
-
     var didDumpToday: Bool {
         dumps.contains { Calendar.current.isDateInToday($0.date) }
     }
@@ -49,7 +47,7 @@ struct TodayView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                    // 今日の集中時間
+                    // 今日の集中時間 + #2 ストリーク表示
                     if todayMinutes > 0 || !completedToday.isEmpty {
                         HStack {
                             Image(systemName: "flame.fill")
@@ -61,6 +59,15 @@ struct TodayView: View {
                             Text("\(completedToday.count)つ完了")
                                 .font(.caption)
                                 .foregroundColor(AppColors.success)
+                        }
+                        .padding(.horizontal)
+                    }
+                    if let streak = profiles.first?.streakCount, streak > 0 {
+                        HStack(spacing: 4) {
+                            Text(streak <= 2 ? "🔥" : streak <= 7 ? "🔥🔥" : "🔥🔥🔥")
+                            Text("\(streak)日連続継続中！")
+                                .font(.caption.bold())
+                                .foregroundColor(AppColors.ember)
                         }
                         .padding(.horizontal)
                     }
@@ -83,44 +90,54 @@ struct TodayView: View {
                         .padding(.horizontal)
                     }
 
-                    // 運動プライミング
+                    // #4 運動プライミング（格上げ）
                     if hasExerciseTrigger && !todayTasks.isEmpty {
                         VStack(spacing: 8) {
-                            Text("🏃 まず5分だけ動こう")
-                                .font(.headline)
-                                .foregroundColor(AppColors.textPrimary)
-                            Text("ストレッチ、散歩、階段、なんでもOK")
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("🏃 まず5分だけ動こう")
+                                        .font(.headline)
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Text("ドーパミンを補給してから集中する")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                                Spacer()
+                                Text("脳科学的根拠あり ⚡️")
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.ember.opacity(0.8))
+                            }
+                            Text("ストレッチ・散歩・階段・ジャンプなんでもOK")
                                 .font(.caption)
                                 .foregroundColor(AppColors.textSecondary)
 
                             if exerciseTimerRunning {
                                 // タイマー表示
-                                let min = (300 - exerciseTimer) / 60
-                                let sec = (300 - exerciseTimer) % 60
-                                Text(String(format: "%d:%02d", min, sec))
+                                let remaining = max(0, 300 - exerciseTimer)
+                                Text(String(format: "%d:%02d", remaining / 60, remaining % 60))
                                     .font(.system(size: 36, weight: .bold, design: .monospaced))
                                     .foregroundColor(AppColors.success)
-                                    .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-                                        if exerciseTimerRunning {
-                                            exerciseTimer += 1
-                                        }
-                                    }
 
                                 if exerciseTimer >= 300 {
-                                    Button {
-                                        exerciseTimerRunning = false
-                                        selectedTask = todayTasks.first
-                                    } label: {
-                                        Text("🔥 動いた！着火する")
-                                            .font(.subheadline.bold())
-                                            .frame(maxWidth: .infinity)
-                                            .padding(12)
-                                            .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.fire))
-                                            .foregroundColor(.white)
+                                    VStack(spacing: 6) {
+                                        Text("🧠⚡️ ドーパミン補給完了！")
+                                            .font(.caption.bold())
+                                            .foregroundColor(AppColors.success)
+                                        Button {
+                                            stopExerciseTimer()
+                                            selectedTask = todayTasks.first
+                                        } label: {
+                                            Text("🔥 着火する")
+                                                .font(.subheadline.bold())
+                                                .frame(maxWidth: .infinity)
+                                                .padding(12)
+                                                .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.fire))
+                                                .foregroundColor(.white)
+                                        }
                                     }
                                 } else {
                                     Button {
-                                        exerciseTimerRunning = false
+                                        stopExerciseTimer()
                                         selectedTask = todayTasks.first
                                     } label: {
                                         Text("もう十分！着火する")
@@ -132,6 +149,10 @@ struct TodayView: View {
                                 Button {
                                     exerciseTimer = 0
                                     exerciseTimerRunning = true
+                                    exerciseTimerObj = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                                        exerciseTimer += 1
+                                        if exerciseTimer >= 300 { stopExerciseTimer() }
+                                    }
                                 } label: {
                                     Text("5分タイマー開始 🏃")
                                         .font(.subheadline.bold())
@@ -176,7 +197,7 @@ struct TodayView: View {
                         .padding(.top, 60)
                     } else {
                         // 今日のタスクカード
-                        ForEach(Array(todayTasks.enumerated()), id: \.element.name) { index, task in
+                        ForEach(Array(todayTasks.enumerated()), id: \.element.persistentModelID) { index, task in
                             Button {
                                 selectedTask = task
                             } label: {
@@ -254,7 +275,7 @@ struct TodayView: View {
                         }
 
                         // 完了済み
-                        ForEach(completedToday, id: \.name) { task in
+                        ForEach(completedToday) { task in
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(AppColors.success)
@@ -286,6 +307,7 @@ struct TodayView: View {
                 .padding(.bottom, 40)
             }
             .background(AppColors.background.ignoresSafeArea())
+            .onDisappear { stopExerciseTimer() }
             .fullScreenCover(item: $selectedTask) { task in
                 IgniteView(task: task)
             }
@@ -301,9 +323,15 @@ struct TodayView: View {
                 Button("キャンセル", role: .cancel) { editingTask = nil }
             }
     }
+    private func stopExerciseTimer() {
+        exerciseTimerRunning = false
+        exerciseTimerObj?.invalidate()
+        exerciseTimerObj = nil
+    }
+
     private func reorder(_ task: Task, direction: Int) {
         var tasks = todayTasks
-        guard let idx = tasks.firstIndex(where: { $0.name == task.name }) else { return }
+        guard let idx = tasks.firstIndex(where: { $0 === task }) else { return }
         let newIdx = idx + direction
         guard tasks.indices.contains(newIdx) else { return }
         tasks.swapAt(idx, newIdx)
@@ -312,7 +340,7 @@ struct TodayView: View {
 
     private func moveToTop(_ task: Task) {
         var tasks = todayTasks
-        guard let idx = tasks.firstIndex(where: { $0.name == task.name }), idx > 0 else { return }
+        guard let idx = tasks.firstIndex(where: { $0 === task }), idx > 0 else { return }
         let t = tasks.remove(at: idx)
         tasks.insert(t, at: 0)
         for (i, t) in tasks.enumerated() { t.todayOrder = i }

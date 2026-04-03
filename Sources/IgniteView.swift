@@ -9,9 +9,7 @@ struct IgniteView: View {
     @State private var sessionStarted = false
     @State private var session: FocusSession?
     @State private var deadlineMinutes: Int = 30
-    @State private var feeling: String = ""
     @Query private var profiles: [UserProfile]
-    @State private var exerciseDone = false
 
     private var hasDeadlineTrigger: Bool {
         profiles.first?.enabledTriggers.contains(.deadline) == true
@@ -83,6 +81,25 @@ struct IgniteView: View {
                                 .autocorrectionDisabled()
                         }
                         .padding(.horizontal)
+
+                        // #3 着火儀式リマインド
+                        if let ritual = profiles.first?.ritualRaw, !ritual.isEmpty {
+                            HStack(spacing: 10) {
+                                Text("🕯️")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("着火前の儀式")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textSecondary)
+                                    Text(ritual)
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(AppColors.ember)
+                                }
+                                Spacer()
+                            }
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.ember.opacity(0.1)))
+                            .padding(.horizontal)
+                        }
 
                         // 締め切りトリガー
                         if hasDeadlineTrigger {
@@ -173,7 +190,6 @@ struct IgniteView: View {
     private func startSession() {
         let s = FocusSession(taskName: task.name, declaration: declaration)
         s.plannedMinutes = hasDeadlineTrigger ? deadlineMinutes : 2
-        s.feeling = feeling.isEmpty ? nil : feeling
         context.insert(s)
         session = s
 
